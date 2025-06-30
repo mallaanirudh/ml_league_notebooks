@@ -1,96 +1,109 @@
-Blueberry Yield Prediction - Regression Challenge
+# Blueberry Yield Prediction - Regression Challenge
+
 This project aims to predict blueberry yield using features like fruitset, seeds, fruitmass, and other environmental/pollinator indicators. The goal was to minimize Mean Absolute Error (MAE) on a hidden Kaggle test set.
 
- Dataset Overview
-train.csv: 15,000 samples with 18 features + target yield
+## Dataset Overview
 
-test.csv: 10,000 samples, no target
+- **train.csv**: 15,000 samples with 18 features + target yield
+- **test.csv**: 10,000 samples, no target
+- **sample_submission.csv**: Format reference for predictions
 
-sample_submission.csv: Format reference for predictions
+## 1. Exploratory Data Analysis (EDA)
 
- 1. Exploratory Data Analysis (EDA)
- Checked data types and distributions
+### Data Quality Assessment
+- Checked data types and distributions
+- Confirmed no missing values
+- Calculated correlations with yield
 
- Confirmed no missing values
+### Key Feature Correlations
+Identified top correlated features with yield:
+- **fruitset**: +0.95
+- **seeds**: +0.92
+- **fruitmass**: +0.89
+- **osmia**: +0.27
 
- Calculated correlations with yield
+### Feature Exclusions
+Dropped low/negatively correlated features:
+- clonesize (-0.41)
+- Row# (-0.01)
+- RainingDays (-0.51)
+- AverageRainingDays (-0.52)
 
- Identified top correlated features:
+## 2. Feature Engineering
 
-fruitset (+0.95)
+### Initial Approach
+Created manual interaction features:
+- `fruitset_x_seeds = fruitset * seeds`
+- `fruitmass_x_seeds = fruitmass * seeds`
+- `combo_feature = fruitset * fruitmass * seeds`
+- `fruit_density = fruitmass / (seeds + 1e-6)`
 
-seeds (+0.92)
+### Strategy Revision
+Later reverted to simpler features due to overfitting risk identified through validation-leaderboard gap analysis.
 
-fruitmass (+0.89)
+## 3. Preprocessing
 
- Dropped low/negatively correlated features like:
+### Data Cleaning
+- Handled outliers by capping extreme values
+- Standardized features for models when needed
 
-clonesize, Row#, RainingDays, AverageRainingDays
- 2. Feature Engineering
- Created manual interaction features:
+### Feature Selection Methods
+- Correlation threshold filtering
+- Permutation importance analysis
+- Cross-validation performance tracking
 
-fruitset_x_seeds = fruitset * seeds
+## 4. Model Development
 
-fruitmass_x_seeds = fruitmass * seeds
+### Models Evaluated
+1. **LinearRegression** (baseline)
+2. **HistGradientBoostingRegressor** (best performer)
+3. **XGBoostRegressor**
+4. **RandomForestRegressor**
+5. **StackingRegressor** (ensemble of HGB + XGB + RF)
 
-combo_feature = fruitset * fruitmass * seeds
+### Hyperparameter Optimization
+- Used **Optuna** for automated tuning
+- Key parameters optimized:
+  - learning_rate
+  - max_iter
+  - max_leaf_nodes
+  - l2_regularization
 
-fruit_density = fruitmass / (seeds + 1e-6)
+### Validation Strategy
+- Initial approach: 80/20 train-validation split
+- Final approach: 5-fold cross-validation for better generalization
 
- Later reverted to simpler features due to overfitting risk
+## 5. Model Evaluation
 
- 3. Preprocessing
-Handled outliers by capping/extreme value control
+### Performance Tracking
+Monitored two key metrics:
+- **CV MAE**: Cross-validation performance on training data
+- **Kaggle MAE**: Leaderboard performance on hidden test set
 
- Standardized features for models (when needed)
+### Overfitting Detection
+Identified significant overfitting when:
+- CV MAE: ~246
+- Kaggle MAE: ~258
+- Gap of 12 points indicated poor generalization
 
- Feature selection via:
+## 6. Generalization Strategy
 
-Correlation threshold
+### Feature Simplification
+Switched to minimal, robust feature set:
+- fruitset
+- seeds
+- fruitmass
 
-Permutation importance
+### Model Simplification
+- Avoided over-feature-engineering
+- Removed log-transform when it caused leaderboard MAE drift
+- Applied stronger regularization techniques
 
- 4. Model Development
- Models Tried:
-LinearRegression (baseline)
+### Final Model Configuration
+Implemented ultra-conservative hyperparameters:
+- Shallow trees (max_depth=2-4)
+- High regularization (l2_regularization=5.0-10.0)
+- Large minimum leaf sizes
+- Reduced learning rates
 
-HistGradientBoostingRegressor (best performer)
-
-XGBoostRegressor
-
-RandomForestRegressor
-
-StackingRegressor (ensemble of HGB + XGB + RF)
-
- Tuning & Validation:
-Used Optuna for hyperparameter tuning:
-
-learning_rate, max_iter, max_leaf_nodes, l2_regularization
-
-Cross-validation:
-
- Switched from 80/20 to 5-fold CV for better generalization
-
- 5. Model Evaluation
-Tracked:
-
-MAE on validation set (CV)
-
-Leaderboard MAE (on Kaggle test set)
-
-Identified overfitting when:
-
-CV MAE: ~246
-
-Kaggle MAE: ~258
-
- 6. Generalization Strategy
-Switched to minimal, robust features:
-
-fruitset, seeds, fruitmass
-
- Avoided over-feature-engineering
-
- Removed log-transform when it caused leaderboard MAE drift
- Tried both HistGradientBoosting and XGBoost with clean input
 
